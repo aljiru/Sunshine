@@ -1,11 +1,11 @@
 package com.example.aljiru.sunshine;
 
-import android.annotation.TargetApi;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -14,6 +14,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -28,10 +29,8 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static android.preference.PreferenceManager.getDefaultSharedPreferences;
 
 public class ForecastFragment extends Fragment {
 
@@ -52,19 +51,26 @@ public class ForecastFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        List<String> data = new ArrayList<>(Arrays.asList(
-                "Today - Sunny - 88/63",
-                "Tomorrow - Foggy - 70/46",
-                "Weds - Cloudy - 72/63",
-                "Thurs - Foggy - 70/46",
-                "Fri - Rainy - 64/51",
-                "Sat - Sunny - 76/68"));
-
         ListView listView = (ListView) rootView.findViewById(R.id.listViewForecast);
-        forecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, data);
+        forecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast,
+                R.id.list_item_forecast_textview, new ArrayList<String>());
         listView.setAdapter(forecastAdapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int pos, long id) {
+                Intent details = new Intent(getActivity(), DetailActivity.class);
+                details.putExtra(Intent.EXTRA_TEXT, forecastAdapter.getItem(pos));
+                startActivity(details);
+            }
+        });
 
         return rootView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
     }
 
     @Override
@@ -75,11 +81,22 @@ public class ForecastFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_refresh) {
-            new FetchWeatherTask().execute("04004,ES");
+        switch (id) {
+            case R.id.action_refresh:
+                updateWeather();
+                return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void updateWeather() {
+        SharedPreferences preferences = getDefaultSharedPreferences(getActivity());
+        String location = preferences.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+        String units = preferences.getString(getString(R.string.pref_units_key),
+                getString(R.string.pref_units_default));
+        new FetchWeatherTask().execute(location, units);
     }
 
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
@@ -97,10 +114,11 @@ public class ForecastFragment extends Fragment {
                     .path("data/2.5/forecast/daily")
                     .appendQueryParameter(TYPE_PARAM, params[0])
                     .appendQueryParameter(MODE_PARAM, "json")
-                    .appendQueryParameter(UNITS_PARAM, "metric")
+                    .appendQueryParameter(UNITS_PARAM, params[1])
                     .appendQueryParameter(DAYS_PARAM, "7")
-                    .appendQueryParameter(KEY_PARAM, "75673c0dcb97360bbc6ab41c4149103d")
+                    .appendQueryParameter(KEY_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
                     .build().toString();
+            Log.i(LOG_NAME, uri);
 
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder().url(uri).build();
@@ -129,9 +147,10 @@ public class ForecastFragment extends Fragment {
             }
         }
 
-        /* The date/time conversion code is going to be moved outside the asynctask later,
-                * so for convenience we're breaking it out into its own method now.
-                */
+        /**
+         * The date/time conversion code is going to be moved outside the asynctask later, so for
+         * convenience we're breaking it out into its own method now.
+         */
         private String getReadableDateString(long time) {
             // Because the API returns a unix timestamp (measured in seconds),
             // it must be converted to milliseconds in order to be converted to valid date.
