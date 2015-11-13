@@ -3,7 +3,6 @@ package com.example.aljiru.sunshine;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v7.widget.ShareActionProvider;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -13,12 +12,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
+import static android.support.v4.view.MenuItemCompat.getActionProvider;
+
 /**
  * A placeholder fragment containing a simple view.
  */
 public class DetailFragment extends Fragment {
 
     private static final String FORECAST_SHARE_HASHTAG = " #SunshineApp";
+
+    @Bind(R.id.textView)
+    TextView textView;
 
     private String forecastMessage;
 
@@ -31,8 +38,7 @@ public class DetailFragment extends Fragment {
         inflater.inflate(R.menu.detailfragment, menu);
 
         MenuItem item = menu.findItem(R.id.menu_item_share);
-        ShareActionProvider shareActionProvider =
-                (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+        ShareActionProvider shareActionProvider = (ShareActionProvider) getActionProvider(item);
 
         if (shareActionProvider != null) {
             shareActionProvider.setShareIntent(createShareIntent());
@@ -63,12 +69,13 @@ public class DetailFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
+        View view = inflater.inflate(R.layout.fragment_detail, container, false);
+        ButterKnife.bind(this, view);
         Intent intent = getActivity().getIntent();
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
             forecastMessage = intent.getStringExtra(Intent.EXTRA_TEXT);
-            ((TextView) rootView.findViewById(R.id.textView)).setText(forecastMessage);
+            textView.setText(forecastMessage);
         }
-        return rootView;
+        return view;
     }
 }

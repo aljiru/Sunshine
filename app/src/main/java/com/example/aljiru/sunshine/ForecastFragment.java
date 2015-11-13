@@ -30,28 +30,39 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
+import butterknife.Bind;
+import butterknife.BindString;
+import butterknife.ButterKnife;
+
 import static android.preference.PreferenceManager.getDefaultSharedPreferences;
 
 public class ForecastFragment extends Fragment {
 
     private static String LOG_NAME = ForecastFragment.class.getSimpleName();
+
     private ArrayAdapter<String> forecastAdapter;
 
-    public ForecastFragment() {
-    }
+    @Bind(R.id.listViewForecast)
+    ListView listView;
+    @BindString(R.string.pref_location_key)
+    String locationKey;
+    @BindString(R.string.pref_location_default)
+    String locationDefault;
+    @BindString(R.string.pref_units_default)
+    String unitsKey;
+    @BindString(R.string.pref_units_default)
+    String unitsDefault;
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public ForecastFragment() {
         setHasOptionsMenu(true);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+        View view = inflater.inflate(R.layout.fragment_main, container, false);
+        ButterKnife.bind(this, view);
 
-        ListView listView = (ListView) rootView.findViewById(R.id.listViewForecast);
         forecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview, new ArrayList<String>());
         listView.setAdapter(forecastAdapter);
@@ -64,7 +75,7 @@ public class ForecastFragment extends Fragment {
             }
         });
 
-        return rootView;
+        return view;
     }
 
     @Override
@@ -92,10 +103,8 @@ public class ForecastFragment extends Fragment {
 
     private void updateWeather() {
         SharedPreferences preferences = getDefaultSharedPreferences(getActivity());
-        String location = preferences.getString(getString(R.string.pref_location_key),
-                getString(R.string.pref_location_default));
-        String units = preferences.getString(getString(R.string.pref_units_key),
-                getString(R.string.pref_units_default));
+        String location = preferences.getString(locationKey, locationDefault);
+        String units = preferences.getString(unitsKey, unitsDefault);
         new FetchWeatherTask().execute(location, units);
     }
 
